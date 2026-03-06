@@ -1,0 +1,11 @@
+---
+SDPSN-devops-charts:
+  # TBD
+  appVariables:
+    LOG_LEVEL: info
+
+  deployment:
+    replicas: 2
+
+  ingress:
+# TBD

@@ -1,0 +1,69 @@
+---
+SDPSN-devops-charts:
+  name: sirena-tools
+
+  deployment:
+    image: ghcr.io/DNUM-SocialGouv/sirena-tools:latest
+    containerPort: 8000
+    imagePullSecretsName: registry-secret
+
+    need_database: false
+    need_redis: false
+    need_bucket: false
+    need_registry: true
+    need_app_secret: true
+
+    readinessProbe:
+      enable: true
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
+      path: /health
+      port: 8000
+
+    livenessProbe:
+      enable: true
+      initialDelaySeconds: 15
+      periodSeconds: 30
+      failureThreshold: 3
+      timeoutSeconds: 5
+      path: /health
+      port: 8000
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+  appVariables:
+    PORT: "8000"
+
+  ingress:
+    enable: true
+    name: sirena-tools
+    ingressClassName: public
+    appAnnotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$1
+      nginx.ingress.kubernetes.io/use-regex: "true"
+    paths:
+      - path: /webhook/(.*)
+        pathType: ImplementationSpecific
+        serviceName: sirena-tools
+        servicePort: 80
+    tls:
+      secretName: sirena-tools-tls
+
+  enableSecurityHeaders: true
+  securityHeaders:
+    Content-Security-Policy: "sandbox; default-src 'none'"
+
+  externalSecret:
+    app:
+      targetSecretName: sirena-tools
+
+  service:
+    targetPort: 8000
