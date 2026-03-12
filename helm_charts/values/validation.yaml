@@ -1,0 +1,10 @@
+---
+SDPSN-devops-charts:
+  appVariables:
+    LOG_LEVEL: info
+
+  ingress:
+    host: tools.sirena.validation.dev.atlas.fabrique.social.gouv.fr
+    tls:
+      hosts:
+        - tools.sirena.validation.dev.atlas.fabrique.social.gouv.fr

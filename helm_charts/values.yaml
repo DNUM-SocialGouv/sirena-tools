@@ -1,8 +1,70 @@
 ---
-externalSecret:
-  database:
-    enable: false
-    databaseType: databases
-    targetSecretName: db-secret
+SDPSN-devops-charts:
+  name: sirena-tools
 
-redis_unmanaged: false
+  externalSecret:
+    app:
+      enable: true
+      targetSecretName: sirena-tools
+      keystoreName: sirena-tools
+      template:
+        # Auth tokens for incoming webhooks (comma-separated for rolling rotation)
+        WEBHOOK_TOKEN: "{{ .WEBHOOK_TOKEN }}"
+        # Mattermost incoming webhook URLs — add one entry per configured channel
+        WEBHOOK_MATTERMOST_LIFECYCLE_URL: "{{ .WEBHOOK_MATTERMOST_LIFECYCLE_URL }}"
+        WEBHOOK_MATTERMOST_DEVALERTS_URL: "{{ .WEBHOOK_MATTERMOST_DEVALERTS_URL }}"
+
+  deployment:
+    image: ghcr.io/dnum-socialgouv/sirena-tools:latest
+    containerPort: 8000
+    imagePullSecretsName: registry-secret
+
+    need_registry: true
+    need_app_secret: true
+
+    readinessProbe:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 3
+      path: /health
+      port: 8000
+
+    livenessProbe:
+      initialDelaySeconds: 15
+      periodSeconds: 30
+      failureThreshold: 3
+      timeoutSeconds: 5
+      path: /health
+      port: 8000
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+  appVariables:
+    PORT: "8000"
+
+  ingress:
+    enable: true
+    appAnnotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$1
+      nginx.ingress.kubernetes.io/use-regex: "true"
+    paths:
+      - path: /webhook/(.*)
+        pathType: ImplementationSpecific
+        serviceName: sirena-tools
+        servicePort: 80
+    tls:
+      secretName: sirena-tools-tls
+
+  enableSecurityHeaders: true
+  securityHeaders:
+    Content-Security-Policy: "sandbox; default-src 'none'"
+
+  service:
+    targetPort: 8000
