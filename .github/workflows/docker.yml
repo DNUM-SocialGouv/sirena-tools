@@ -7,6 +7,11 @@ on:
       - github_ci
     tags:
       - "v*.*.*"
+    inputs:
+      environment:
+        description: "Environment name (integration, validation)"
+        required: true
+        default: "integration"
 
 env:
   REGISTRY: ghcr.io
@@ -94,20 +99,54 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to ${{ github.event.inputs.environment }}
+    name: Deploy to ${{ github.event.github.event.inputs.environment }}
     needs: "build-and-push"
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - uses: actions/checkout@v6.0.2
+    - uses: actions/checkout@v4
+    - uses: azure/setup-helm@v4.3.0
+      with:
+        version: v3.19.0
+      id: install
 
-      - name: Deploy to GitOps
+    - name: render manifests using helm chart
+      shell: bash
+      run: |
+        pwd
+        ls -la
+        cd helm_charts
+        helm repo add SDPSN-devops-charts https://pic.sg.social.gouv.fr/api/v4/projects/94/packages/helm/stable --username oauth2 --password ${{ secrets.HELM_REPO_PAT }}
+        helm dependency update
+        helm dependency build
+        echo "${{ github.event.inputs.environment }} ${{ steps.meta.outputs.tags }}"
+        ./generate_manifests.sh ${{ github.event.inputs.environment }} ${{ steps.meta.outputs.tags }}
 
-        uses: ./.github/actions/deploy-gitops
-        with:
-          environment: ${{ github.event.inputs.environment }}
-          version: ${{ needs.build-docker.outputs.VERSION }}
-          gitops-repo-key: ${{ secrets.GITOPS_REPO_KEY }}
-          helm-repo-pat: ${{ secrets.HELM_REPO_PAT }}
+    - name: Checkout GitOps repository
+      uses: actions/checkout@v5
+      with:
+        repository: ${{ inputs.gitops-repo }}
+        path: gitops-repo
+        ssh-key: ${{ secrets.GITOPS_REPO_KEY }}
+
+    - name: Deploy to GitOps
+      shell: bash
+      run: |
+        rm -r gitops-repo/deployment-targets/${{ github.event.inputs.environment }}/tools
+        mv helm_charts/generated_manifests/* gitops-repo/deployment-targets/${{ github.event.inputs.environment }}/tools/
+
+        git config --global user.name "github-actions[bot]"
+        # mail standard bot github Actions
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        cd gitops-repo
+        git add .
+
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit, skipping commit and push"
+        else
+          git commit -m '[${{ github.event.inputs.environment }}] new version ${{ steps.meta.outputs.tags }}'
+          git push
+        fi
