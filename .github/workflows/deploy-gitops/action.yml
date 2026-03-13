@@ -1,0 +1,65 @@
+name: "Deploy to GitOps"
+description: "Generate Kubernetes manifests and deploy to GitOps repository"
+
+inputs:
+  environment:
+    description: "Environment name (test, integration, etc.)"
+    required: true
+  version:
+    description: "Version identifier for versioning (tag name or short SHA)"
+    required: true
+  gitops-repo:
+    description: "GitOps repository name"
+    required: false
+    default: "fabrique-atlas/org-sdpsn-ws-sirena"
+  gitops-repo-key:
+    description: "SSH key for GitOps repository access"
+    required: true
+  helm-repo-pat:
+    description: "PAT pour télécharger la chart helm"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: azure/setup-helm@v4.3.0
+      with:
+         version: v3.19.0
+      id: install
+
+    - name: render manifests using helm chart
+      shell: bash
+      run: |
+        cd helm_charts
+        helm repo add SDPSN-devops-charts https://pic.sg.social.gouv.fr/api/v4/projects/94/packages/helm/stable --username oauth2 --password ${{ inputs.helm-repo-pat }}
+        helm dependency update
+        helm dependency build
+        echo "${{ inputs.environment }} ${{ inputs.version }}"
+        ./generate_manifests.sh ${{ inputs.environment }} ${{ inputs.version }}
+
+    - name: Checkout GitOps repository
+      uses: actions/checkout@v5
+      with:
+        repository: ${{ inputs.gitops-repo }}
+        path: gitops-repo
+        ssh-key: ${{ inputs.gitops-repo-key }}
+#
+    - name: Deploy to GitOps
+      shell: bash
+      run: |
+        rm -r gitops-repo/deployment-targets/${{ inputs.environment }}/tools 
+        mv helm_charts/generated_manifests/* gitops-repo/deployment-targets/${{ inputs.environment }}/tools/
+
+        git config --global user.name "github-actions[bot]"
+        # mail standard bot github Actions
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        cd gitops-repo
+        git add .
+
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit, skipping commit and push"
+        else
+          git commit -m '[${{ inputs.environment }}] new version ${{ inputs.version }}'
+          git push
+        fi

@@ -91,3 +91,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    needs: build-docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Deploy to GitOps
+        uses: ./.github/actions/deploy-gitops
+        with:
+          environment: ${{ github.event.inputs.environment }}
+          version: ${{ needs.build-docker.outputs.VERSION }}
+          gitops-repo-key: ${{ secrets.GITOPS_REPO_KEY }}
+          helm-repo-pat: ${{ secrets.HELM_REPO_PAT }}
