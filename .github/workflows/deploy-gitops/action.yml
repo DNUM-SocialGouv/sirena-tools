@@ -43,11 +43,11 @@ runs:
         repository: ${{ inputs.gitops-repo }}
         path: gitops-repo
         ssh-key: ${{ inputs.gitops-repo-key }}
-#
+
     - name: Deploy to GitOps
       shell: bash
       run: |
-        rm -r gitops-repo/deployment-targets/${{ inputs.environment }}/tools 
+        rm -r gitops-repo/deployment-targets/${{ inputs.environment }}/tools
         mv helm_charts/generated_manifests/* gitops-repo/deployment-targets/${{ inputs.environment }}/tools/
 
         git config --global user.name "github-actions[bot]"

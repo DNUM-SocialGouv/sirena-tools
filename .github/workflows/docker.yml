@@ -92,7 +92,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-
   deploy:
     name: Deploy to ${{ github.event.inputs.environment }}
     needs: build-docker
