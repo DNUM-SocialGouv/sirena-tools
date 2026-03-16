@@ -1,21 +1,23 @@
 name: Docker
 
 on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment name (integration, validation)"
+        required: true
+        default: "integration"
   push:
     branches:
       - develop
       - github_ci
     tags:
       - "v*.*.*"
-    inputs:
-      environment:
-        description: "Environment name (integration, validation)"
-        required: true
-        default: "integration"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'integration' }}
 
 jobs:
   build-and-push:
@@ -99,7 +101,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy to ${{ github.event.github.event.inputs.environment }}
+    name: Deploy to ${ENVIRONMENT}
     needs: "build-and-push"
     runs-on: ubuntu-latest
     permissions:
@@ -121,8 +123,8 @@ jobs:
         helm repo add SDPSN-devops-charts https://pic.sg.social.gouv.fr/api/v4/projects/94/packages/helm/stable --username oauth2 --password ${{ secrets.HELM_REPO_PAT }}
         helm dependency update
         helm dependency build
-        echo "${{ github.event.inputs.environment }} ${{ steps.meta.outputs.tags }}"
-        ./generate_manifests.sh ${{ github.event.inputs.environment }} ${{ steps.meta.outputs.tags }}
+        echo "${ENVIRONMENT} ${GITHUB_SHA::8}"
+        ./generate_manifests.sh ${ENVIRONMENT} ${GITHUB_SHA::8}
 
     - name: Checkout GitOps repository
       uses: actions/checkout@v5
@@ -134,8 +136,8 @@ jobs:
     - name: Deploy to GitOps
       shell: bash
       run: |
-        rm -r gitops-repo/deployment-targets/${{ github.event.inputs.environment }}/tools
-        mv helm_charts/generated_manifests/* gitops-repo/deployment-targets/${{ github.event.inputs.environment }}/tools/
+        rm -r gitops-repo/deployment-targets/${ENVIRONMENT}/tools
+        mv helm_charts/generated_manifests/sirena-tools-app/* gitops-repo/deployment-targets/${ENVIRONMENT}/tools/
 
         git config --global user.name "github-actions[bot]"
         # mail standard bot github Actions
@@ -147,6 +149,6 @@ jobs:
         if git diff --staged --quiet; then
           echo "No changes to commit, skipping commit and push"
         else
-          git commit -m '[${{ github.event.inputs.environment }}] new version ${{ steps.meta.outputs.tags }}'
+          git commit -m '[${ENVIRONMENT} ] new version ${GITHUB_SHA::8}'
           git push
         fi
