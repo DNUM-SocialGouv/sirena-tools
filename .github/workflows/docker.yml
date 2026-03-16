@@ -129,7 +129,7 @@ jobs:
     - name: Checkout GitOps repository
       uses: actions/checkout@v5
       with:
-        repository: ${{ inputs.gitops-repo }}
+        repository: fabrique-atlas/org-sdpsn-ws-sirena
         path: gitops-repo
         ssh-key: ${{ secrets.GITOPS_REPO_KEY }}
 
@@ -138,7 +138,7 @@ jobs:
       run: |
         ls -la
         ls -la gitops-repo/deployment-targets/${ENVIRONMENT}/
-        rm -r gitops-repo/deployment-targets/${ENVIRONMENT}/tools
+        rm -r gitops-repo/deployment-targets/${ENVIRONMENT}/tools/*
         mv helm_charts/generated_manifests/sirena-tools-app/* gitops-repo/deployment-targets/${ENVIRONMENT}/tools/
 
         git config --global user.name "github-actions[bot]"
