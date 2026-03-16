@@ -136,6 +136,8 @@ jobs:
     - name: Deploy to GitOps
       shell: bash
       run: |
+        ls -la
+        ls -la gitops-repo/deployment-targets/${ENVIRONMENT}/
         rm -r gitops-repo/deployment-targets/${ENVIRONMENT}/tools
         mv helm_charts/generated_manifests/sirena-tools-app/* gitops-repo/deployment-targets/${ENVIRONMENT}/tools/
 
