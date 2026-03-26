@@ -22,7 +22,7 @@ fi
 # SIRENA-TOOLS
 helm template sirena-tools . \
   -f "values/${ENVIRONNEMENT}.yaml" \
-  --set "SDPSN-devops-charts.deployment.image=ghcr.io/DNUM-SocialGouv/sirena-tools:${IMAGE_TAG}" \
+  --set "SDPSN-devops-charts.deployment.image=ghcr.io/dnum-socialgouv/sirena-tools:${IMAGE_TAG}" \
   ${HELM_FLAGS} \
   --output-dir ./generated_manifests
 mv ./generated_manifests/sirena-tools/charts/SDPSN-devops-charts/templates ./generated_manifests/sirena-tools-app

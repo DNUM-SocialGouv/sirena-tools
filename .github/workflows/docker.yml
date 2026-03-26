@@ -47,7 +47,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=sha,prefix=sha-,format=short
+            type=sha,prefix=sha-,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Set up Docker Buildx
@@ -122,8 +122,8 @@ jobs:
           helm repo add SDPSN-devops-charts https://pic.sg.social.gouv.fr/api/v4/projects/94/packages/helm/stable --username oauth2 --password ${{ secrets.HELM_REPO_PAT }}
           helm dependency update
           helm dependency build
-          echo "${ENVIRONMENT} ${GITHUB_SHA::8}"
-          ./generate_manifests.sh ${ENVIRONMENT} ${GITHUB_SHA::8}
+          echo "${ENVIRONMENT} sha-${GITHUB_SHA}"
+          ./generate_manifests.sh ${ENVIRONMENT} sha-${GITHUB_SHA}
 
       - name: Checkout GitOps repository
         uses: actions/checkout@v5
@@ -150,6 +150,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit, skipping commit and push"
           else
-            git commit -m '[${ENVIRONMENT} ] new version ${GITHUB_SHA::8}'
+            git commit -m '[${ENVIRONMENT} ] new version sha-${GITHUB_SHA}'
             git push
           fi

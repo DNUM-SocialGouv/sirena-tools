@@ -242,7 +242,7 @@ Triggered on every push and pull request:
 Triggered on push to `main` and on semver tags (`v*.*.*`):
 
 - Builds the Docker image
-- Pushes to [GitHub Container Registry](https://ghcr.io) (`ghcr.io/DNUM-SocialGouv/sirena-tools`)
+- Pushes to [GitHub Container Registry](https://ghcr.io) (`ghcr.io/dnum-socialgouv/sirena-tools`)
 
 Tags applied:
 
